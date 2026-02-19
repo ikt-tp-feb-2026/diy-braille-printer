@@ -50,7 +50,7 @@ WebServer server(80);
 // ВЕБ-ИНТЕРФЕЙС
 // ==========================================
 
-/*void handleRoot() {
+void handleRoot() {
   File file = LittleFS.open("/index.html", "r");
   if (!file) {
     server.send(500, "text/plain", "Error: index.html not found on SPIFFS/LittleFS");
@@ -58,7 +58,7 @@ WebServer server(80);
   }
   server.streamFile(file, "text/html"); 
   file.close();
-}*/
+}
 
 // ==========================================
 // ПЕРЕМЕННЫЕ
@@ -194,7 +194,7 @@ byte getCharBits(String l) {
   if(l=="ь" || l=="Ь") return 0b111110;
   if(l=="э" || l=="Э") return 0b101010; 
   if(l=="ю" || l=="Ю") return 0b110011; 
-  if(l=="я" || l=="Я") return 0b101101;
+  if(l=="я" || l=="Я") return 0b101011;
   
   // Цифры
   if(l=="1") return 0b000001;
@@ -209,12 +209,12 @@ byte getCharBits(String l) {
   if(l=="0") return 0b011010;
   
   // Знаки
-  if(l=="." || l=="●") return 0b100100;
+  if(l=="." || l=="●") return 0b110010;
   if(l==",") return 0b000010;
   if(l=="!") return 0b010110;
-  if(l=="?") return 0b100110;
+  if(l=="?") return 0b100010;
   if(l=="-") return 0b100100;
-  
+  //TODO цифровой индикатор
   return 0; 
 }
 
@@ -373,6 +373,22 @@ void handleServo(){
   }
 }
 
+
+void handleServo2(){
+  if (server.hasArg("angle")) {
+    String angleVal = server.arg("angle");
+    int angle = angleVal.toInt();
+    
+    if (angle < 0) angle = 0;
+    if (angle > 180) angle = 180;
+
+    myServo2.write(angle); 
+    server.send(200, "text/plain", "OK");
+  } else {
+    server.send(400, "text/plain", "Missing angle");
+  }
+}
+
 void handleStepper() {
   if (!server.hasArg("steps") || !server.hasArg("dir")) {
     server.send(400, "text/plain", "Bad Request");
@@ -418,6 +434,9 @@ void setup() {
   myServo.attach(servoPin, 500, 2400); 
   myServo.write(ANGLE_UP);
   
+  myServo2.attach(servo2Pin, 500, 2400); 
+  //myServo2.write(ANGLE_UP);
+  
   // Пины шаговика
   pinMode(STEP_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
@@ -428,18 +447,17 @@ void setup() {
   Serial.print("IP Address: "); 
   Serial.println(WiFi.softAPIP());
 
-  server.serveStatic("/", LittleFS, "/index.html");
-  server.serveStatic("/styles.css", LittleFS, "/styles.css");
-  server.serveStatic("/script.js", LittleFS, "/script.js");
-
   // Маршруты
-  //server.on("/", handleRoot);
+  server.on("/", handleRoot);
   server.on("/print", handlePrint);
   server.on("/status", handleStatus);
   server.on("/servo", handleServo);
+  server.on("/servo2", handleServo2);
   server.on("/stepper", handleStepper);
   server.on("/save_settings", handleSaveSettings);
   server.on("/get_settings", handleGetSettings);
+
+  //server.serveStatic("/", LittleFS, "/");
   
   server.begin();
   Serial.println("Server Started!");

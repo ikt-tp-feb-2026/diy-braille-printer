@@ -16,7 +16,9 @@ const char* password = "adminadmin";
 // НАСТРОЙКИ МЕХАНИКИ
 // ==========================================
 Servo myServo;
+Servo myServo2;
 const int servoPin = 5;
+const int servo2Pin = 18;
 
 // --- ШАГОВЫЙ МОТОР ---
 const int STEP_PIN = 17; 
@@ -48,7 +50,7 @@ WebServer server(80);
 // ВЕБ-ИНТЕРФЕЙС
 // ==========================================
 
-void handleRoot() {
+/*void handleRoot() {
   File file = LittleFS.open("/index.html", "r");
   if (!file) {
     server.send(500, "text/plain", "Error: index.html not found on SPIFFS/LittleFS");
@@ -56,7 +58,7 @@ void handleRoot() {
   }
   server.streamFile(file, "text/html"); 
   file.close();
-}
+}*/
 
 // ==========================================
 // ПЕРЕМЕННЫЕ
@@ -426,8 +428,12 @@ void setup() {
   Serial.print("IP Address: "); 
   Serial.println(WiFi.softAPIP());
 
+  server.serveStatic("/", LittleFS, "/index.html");
+  server.serveStatic("/styles.css", LittleFS, "/styles.css");
+  server.serveStatic("/script.js", LittleFS, "/script.js");
+
   // Маршруты
-  server.on("/", handleRoot);
+  //server.on("/", handleRoot);
   server.on("/print", handlePrint);
   server.on("/status", handleStatus);
   server.on("/servo", handleServo);

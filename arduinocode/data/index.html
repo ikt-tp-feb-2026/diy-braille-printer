@@ -676,6 +676,23 @@
             <input type="number" id="cfg_c_line"> </div>
 
         <hr style="border:0; border-top:1px dashed #ddd; margin: 15px 0;">
+        
+        <div class="setting-group">
+            <label>Угол: Шаг между точками (°)</label>
+            <input type="number" id="cfg_as_dot">
+        </div>
+        <div class="setting-group">
+            <label>Угол: Шаг между буквами (°)</label>
+            <input type="number" id="cfg_as_char">
+        </div>
+        <div class="setting-group">
+            <label>Возврат: Шаг угла (°)</label>
+            <input type="number" id="cfg_r_ang">
+        </div>
+        <div class="setting-group">
+            <label>Возврат: Задержка плавности (мс)</label>
+            <input type="number" id="cfg_r_del">
+        </div>
 
         <div class="setting-group">
             <label>Задержка точки (мс)</label>
@@ -831,15 +848,21 @@
                 // Тайминги
                 if(data.t_dot !== undefined) document.getElementById('cfg_t_dot').value = data.t_dot;
                 if(data.t_ret !== undefined) document.getElementById('cfg_t_ret').value = data.t_ret;
-                if(data.t_char !== undefined) document.getElementById('cfg_t_char').value = data.t_char; // NEW
+                if(data.t_char !== undefined) document.getElementById('cfg_t_char').value = data.t_char;
                 
                 // Механика
                 if(data.s_row !== undefined) document.getElementById('cfg_s_row').value = data.s_row;
                 if(data.s_new !== undefined) document.getElementById('cfg_s_new').value = data.s_new;
-                if(data.c_line !== undefined) document.getElementById('cfg_c_line').value = data.c_line; // NEW
+                if(data.c_line !== undefined) document.getElementById('cfg_c_line').value = data.c_line;
                 
                 // Направление
                 if(data.f_dir !== undefined) document.getElementById('cfg_feed_dir').value = data.f_dir;
+
+                // Настройки каретки
+                if(data.as_dot !== undefined) document.getElementById('cfg_as_dot').value = data.as_dot;
+                if(data.as_char !== undefined) document.getElementById('cfg_as_char').value = data.as_char;
+                if(data.r_ang !== undefined) document.getElementById('cfg_r_ang').value = data.r_ang;
+                if(data.r_del !== undefined) document.getElementById('cfg_r_del').value = data.r_del;
             })
             .catch(err => console.log("Ошибка загрузки настроек: " + err));
     }
@@ -866,7 +889,11 @@
             s_row: document.getElementById('cfg_s_row').value,
             s_new: document.getElementById('cfg_s_new').value,
             c_line: document.getElementById('cfg_c_line').value,
-            f_dir: document.getElementById('cfg_feed_dir').value
+            f_dir: document.getElementById('cfg_feed_dir').value,
+            as_dot: document.getElementById('cfg_as_dot').value,
+            as_char: document.getElementById('cfg_as_char').value,
+            r_ang: document.getElementById('cfg_r_ang').value,
+            r_del: document.getElementById('cfg_r_del').value
         });
 
         fetch('/save_settings?' + params.toString())

@@ -33,6 +33,12 @@ int ANGLE_DOWN = 0;
 int ANGLE_SIDE = 0;
 int ANGLE_MAX_SIDE = 170;
 
+int ANGLE_STEP_DOT = 3;   // Градусы поворота между 1 и 2 точкой внутри символа
+int ANGLE_STEP_CHAR = 6;  // Градусы поворота между символами
+int RET_STEP_ANGLE = 2;   // На сколько градусов возвращать серво за один "тик"
+int RET_STEP_DELAY = 15;  // Задержка (мс) между "тиками" возврата для плавности
+int currentPosX = ANGLE_SIDE; // Текущая позиция каретки
+
 // Тайминги (мс) для печати (пока просто задержки)
 int TIME_DOT = 150;   // Между точками
 int TIME_CHAR = 200;  // Между буквами
@@ -83,6 +89,10 @@ void loadSettings() {
   CHARS_PER_LINE = preferences.getInt("c_line", 13);
   STEPS_ROW = preferences.getInt("s_row", 700);
   STEPS_NEWLINE = preferences.getInt("s_new", 900);
+  ANGLE_STEP_DOT = preferences.getInt("as_dot", 3);
+  ANGLE_STEP_CHAR = preferences.getInt("as_char", 6);
+  RET_STEP_ANGLE = preferences.getInt("r_ang", 2);
+  RET_STEP_DELAY = preferences.getInt("r_del", 15);
 
   Serial.println("Settings loaded from NVS");
 }
@@ -141,6 +151,26 @@ void handleSaveSettings() {
     preferences.putInt("c_line", CHARS_PER_LINE);
     changed = true;
   }
+  if (server.hasArg("as_dot")) {
+    ANGLE_STEP_DOT = server.arg("as_dot").toInt();
+    preferences.putInt("as_dot", ANGLE_STEP_DOT);
+    changed = true;
+  }
+  if (server.hasArg("as_char")) {
+    ANGLE_STEP_CHAR = server.arg("as_char").toInt();
+    preferences.putInt("as_char", ANGLE_STEP_CHAR);
+    changed = true;
+  }
+  if (server.hasArg("r_ang")) {
+    RET_STEP_ANGLE = server.arg("r_ang").toInt();
+    preferences.putInt("r_ang", RET_STEP_ANGLE);
+    changed = true;
+  }
+  if (server.hasArg("r_del")) {
+    RET_STEP_DELAY = server.arg("r_del").toInt();
+    preferences.putInt("r_del", RET_STEP_DELAY);
+    changed = true;
+  }
 
   if (changed) {
     server.send(200, "text/plain", "Settings Saved & Applied!");
@@ -161,7 +191,12 @@ void handleGetSettings() {
   json += "\"s_row\":" + String(STEPS_ROW) + ",";
   json += "\"s_new\":" + String(STEPS_NEWLINE) + ",";
   json += "\"c_line\":" + String(CHARS_PER_LINE) + ",";
-  json += "\"f_dir\":" + String(FEED_DIR);
+  json += "\"f_dir\":" + String(FEED_DIR);+ ",";
+  json += "\"as_dot\":" + String(ANGLE_STEP_DOT) + ",";
+  json += "\"as_char\":" + String(ANGLE_STEP_CHAR) + ",";
+  json += "\"r_ang\":" + String(RET_STEP_ANGLE) + ",";
+  json += "\"r_del\":" + String(RET_STEP_DELAY);
+  json += "}";
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -305,6 +340,10 @@ void printPhysicalLine(String lineText) {
   for (int row = 0; row < 3; row++) {
     // Проход печати точек
     Serial.print("--- Start Row Pass: "); Serial.println(row);
+
+    currentPosX = ANGLE_SIDE;
+    myServo2.write(currentPosX);
+    delay(200);
     
     for (int i = 0; i < lineText.length(); i++) {
       server.handleClient(); // Чтобы WiFi не отвалился
@@ -329,14 +368,31 @@ void printPhysicalLine(String lineText) {
       if(row==2) { d1 = bits & 4;  d2 = bits & 32; } 
 
       if(d1) punch(); else delay(240); 
+      
+      // Сдвигаемся ко второй точке символа
+      currentPosX += ANGLE_STEP_DOT;
+      if(currentPosX > ANGLE_MAX_SIDE) currentPosX = ANGLE_MAX_SIDE; // Защита от перекрута
+      myServo2.write(currentPosX);
       delay(TIME_DOT); 
+      
       if(d2) punch(); else delay(240); 
-      delay(TIME_CHAR); 
+      
+      // Сдвигаемся к следующему символу
+      currentPosX += ANGLE_STEP_CHAR;
+      if(currentPosX > ANGLE_MAX_SIDE) currentPosX = ANGLE_MAX_SIDE; // Защита от перекрута
+      myServo2.write(currentPosX);
+      delay(TIME_CHAR);
     }
     
     // Конец прохода (строка точек набита)
     Serial.println("Row pass complete. Returning carriage...");
-    delay(TIME_RET); // Ждем, пока каретка вернется в начало (или возвращаем её руками)
+    while (currentPosX > ANGLE_SIDE) {
+      currentPosX -= RET_STEP_ANGLE;
+      if (currentPosX < ANGLE_SIDE) currentPosX = ANGLE_SIDE; // Чтобы не уйти в минус
+      myServo2.write(currentPosX);
+      delay(RET_STEP_DELAY);
+    }
+    delay(TIME_RET); // Оставляем общую паузу перед следующим шагом мотора (на всякий случай)
 
     // Протяжка бумаги
     if (row < 2) {

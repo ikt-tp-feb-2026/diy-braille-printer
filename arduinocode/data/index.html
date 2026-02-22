@@ -615,6 +615,15 @@
       </div>
 
       <div class="control-group">
+          <p style="margin-bottom: 15px; font-weight: 600;">Третий сервопривод</p>
+          <div style="margin-bottom: 15px;">
+            <label for="servo3Angle" class="label-small">Угол (0° - 180°):</label>
+            <input type="number" id="servo3Angle" min="0" max="180" value="90" placeholder="90">
+          </div>
+          <button class="btn btn-red" onclick="sendServo3()">ПОВЕРНУТЬ СЕРВО</button>
+      </div>
+
+      <div class="control-group">
         <p style="margin-bottom: 15px; font-weight: 600;">Шаговый двигатель</p>
         
         <label for="stepperSteps" class="label-small">Количество шагов:</label>
@@ -646,15 +655,34 @@
         <h3 style="margin-top:0;">⚙️ Калибровка</h3>
         
         <div class="setting-group">
-            <label>Серво: Удар (низ, 0-180)</label>
+            <label>Имя сети Wi-Fi (SSID)</label>
+            <input type="text" id="cfg_ssid">
+        </div>
+        <div class="setting-group">
+            <label>Пароль Wi-Fi</label>
+            <input type="text" id="cfg_password">
+        </div>
+
+        <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
+
+        <div class="setting-group">
+            <label>Серво 1: Удар (низ, 0-180)</label>
             <input type="number" id="cfg_a_down">
         </div>
         <div class="setting-group">
-            <label>Серво: Подъем (верх, 0-180)</label>
+            <label>Серво 1: Подъем (верх, 0-180)</label>
             <input type="number" id="cfg_a_up">
         </div>
+        <div class="setting-group">
+            <label>Серво 2 (Каретка): Начальный угол</label>
+            <input type="number" id="cfg_a_side">
+        </div>
+        <div class="setting-group">
+            <label>Серво 3: Начальный угол</label>
+            <input type="number" id="cfg_a_s3_init">
+        </div>
 
-        <hr style="border:0; border-top:1px dashed #ddd; margin: 15px 0;">
+        <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
 
         <div class="setting-group">
            <label>Направление протяжки</label>
@@ -669,13 +697,14 @@
         </div>
         <div class="setting-group">
             <label>Шаги между точками (Row Gap)</label>
-            <input type="number" id="cfg_s_row">
+            <input type="number"id="cfg_s_row">
         </div>
         <div class="setting-group">
             <label>Символов в строке (Limit)</label>
-            <input type="number" id="cfg_c_line"> </div>
+            <input type="number" id="cfg_c_line">
+        </div>
 
-        <hr style="border:0; border-top:1px dashed #ddd; margin: 15px 0;">
+        <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
         
         <div class="setting-group">
             <label>Угол: Шаг между точками (°)</label>
@@ -694,13 +723,16 @@
             <input type="number" id="cfg_r_del">
         </div>
 
+        <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
+
         <div class="setting-group">
             <label>Задержка точки (мс)</label>
             <input type="number" id="cfg_t_dot">
         </div>
         <div class="setting-group">
             <label>Задержка между буквами (мс)</label>
-            <input type="number" id="cfg_t_char"> </div>
+            <input type="number" id="cfg_t_char">
+        </div>
         <div class="setting-group">
            <label>Задержка возврата каретки (мс)</label>
            <input type="number" id="cfg_t_ret">
@@ -797,6 +829,30 @@
       xhr.send();
     }
 
+    function sendServo3() {
+      const angleInput = document.getElementById('servo3Angle');
+      let angle = parseInt(angleInput.value);
+
+      if (isNaN(angle)) angle = 0;
+      if (angle < 0) angle = 0;
+      if (angle > 180) angle = 180;
+      angleInput.value = angle; 
+
+      setDebugStatus("⏳ Поворот серво3 на " + angle + "°...", "#e67e22");
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/servo3?angle=" + angle, true);
+      xhr.onload = function() {
+        if(xhr.status == 200) {
+          setDebugStatus("✅ Серво3: " + angle + "°", "#27ae60");
+        } else {
+          setDebugStatus("❌ Ошибка HTTP: " + xhr.status, "#c0392b");
+        }
+      };
+      xhr.onerror = function() { setDebugStatus("❌ Ошибка соединения", "#c0392b"); };
+      xhr.send();
+    }
+
     // --- ЛОГИКА ШАГОВИКА ---
     let currentStepperDir = 'cw'; // cw = clockwise, ccw = counter-clockwise
 
@@ -841,9 +897,15 @@
         fetch('/get_settings')
             .then(response => response.json())
             .then(data => {
+                // WiFi
+                if(data.ssid !== undefined) document.getElementById('cfg_ssid').value = data.ssid;
+                if(data.password !== undefined) document.getElementById('cfg_password').value = data.password;
+
                 // Серво
                 if(data.a_down !== undefined) document.getElementById('cfg_a_down').value = data.a_down;
                 if(data.a_up !== undefined) document.getElementById('cfg_a_up').value = data.a_up;
+                if(data.a_side !== undefined) document.getElementById('cfg_a_side').value = data.a_side;
+                if(data.a_s3_init !== undefined) document.getElementById('cfg_a_s3_init').value = data.a_s3_init;
                 
                 // Тайминги
                 if(data.t_dot !== undefined) document.getElementById('cfg_t_dot').value = data.t_dot;
@@ -881,8 +943,12 @@
 
     function saveSettings() {
         const params = new URLSearchParams({
+            ssid: document.getElementById('cfg_ssid').value,
+            password: document.getElementById('cfg_password').value,
             a_down: document.getElementById('cfg_a_down').value,
             a_up: document.getElementById('cfg_a_up').value,
+            a_side: document.getElementById('cfg_a_side').value,
+            a_s3_init: document.getElementById('cfg_a_s3_init').value,
             t_dot: document.getElementById('cfg_t_dot').value,
             t_ret: document.getElementById('cfg_t_ret').value,
             t_char: document.getElementById('cfg_t_char').value,

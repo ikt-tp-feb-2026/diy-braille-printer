@@ -9,16 +9,18 @@ Preferences preferences;
 // ==========================================
 // НАСТРОЙКИ СЕТИ
 // ==========================================
-const char* ssid = "admin"; 
-const char* password = "adminadmin"; 
+String ssid = "admin"; 
+String password = "adminadmin"; 
 
 // ==========================================
 // НАСТРОЙКИ МЕХАНИКИ
 // ==========================================
 Servo myServo;
 Servo myServo2;
+Servo myServo3;
 const int servoPin = 5;
 const int servo2Pin = 18;
+const int servo3Pin = 19;
 
 // --- ШАГОВЫЙ МОТОР ---
 const int STEP_PIN = 17; 
@@ -32,6 +34,9 @@ int ANGLE_DOWN = 0;
 // --- СЕРВО2 ---
 int ANGLE_SIDE = 0;
 int ANGLE_MAX_SIDE = 170;
+
+// --- СЕРВО3 ---
+int ANGLE_SERVO3_INIT = 90;
 
 int ANGLE_STEP_DOT = 3;   // Градусы поворота между 1 и 2 точкой внутри символа
 int ANGLE_STEP_CHAR = 6;  // Градусы поворота между символами
@@ -79,9 +84,13 @@ void loadSettings() {
   preferences.begin("printer", false);
 
   // Читаем значения. Если ключа нет, берем второй аргумент (дефолт)
+  ssid = preferences.getString("ssid", "admin");
+  password = preferences.getString("password", "adminadmin");
+  
   ANGLE_UP = preferences.getInt("a_up", 0);
   ANGLE_DOWN = preferences.getInt("a_down", 90);
   ANGLE_SIDE = preferences.getInt("a_side", 0);
+  ANGLE_SERVO3_INIT = preferences.getInt("a_s3_init", 90);
   TIME_DOT = preferences.getInt("t_dot", 150);
   TIME_CHAR = preferences.getInt("t_char", 200);
   TIME_RET = preferences.getInt("t_ret", 1500);
@@ -100,6 +109,24 @@ void loadSettings() {
 // Обработчик сохранения (вызывается кнопкой "Сохранить" с сайта)
 void handleSaveSettings() {
   bool changed = false;
+  bool wifiChanged = false;
+
+  if (server.hasArg("ssid")) {
+    String newSsid = server.arg("ssid");
+    if (newSsid != ssid) {
+      ssid = newSsid;
+      preferences.putString("ssid", ssid);
+      wifiChanged = true;
+    }
+  }
+  if (server.hasArg("password")) {
+    String newPassword = server.arg("password");
+    if (newPassword != password) {
+      password = newPassword;
+      preferences.putString("password", password);
+      wifiChanged = true;
+    }
+  }
 
   if (server.hasArg("a_up")) {
     ANGLE_UP = server.arg("a_up").toInt();
@@ -114,6 +141,11 @@ void handleSaveSettings() {
   if (server.hasArg("a_side")) {
     ANGLE_SIDE = server.arg("a_side").toInt();
     preferences.putInt("a_side", ANGLE_SIDE);
+    changed = true;
+  }
+    if (server.hasArg("a_s3_init")) {
+    ANGLE_SERVO3_INIT = server.arg("a_s3_init").toInt();
+    preferences.putInt("a_s3_init", ANGLE_SERVO3_INIT);
     changed = true;
   }
   if (server.hasArg("t_dot")) {
@@ -172,7 +204,10 @@ void handleSaveSettings() {
     changed = true;
   }
 
-  if (changed) {
+  if (wifiChanged) {
+    server.send(200, "text/plain", "WiFi settings saved! Please reboot the device.");
+    Serial.println("New WiFi settings saved to NVS. Reboot needed.");
+  } else if (changed) {
     server.send(200, "text/plain", "Settings Saved & Applied!");
     Serial.println("New settings saved to NVS");
   } else {
@@ -182,21 +217,23 @@ void handleSaveSettings() {
 
 void handleGetSettings() {
   String json = "{";
+  json += "\"ssid\":\"" + ssid + "\",";
+  json += "\"password\":\"" + password + "\",";
   json += "\"a_up\":" + String(ANGLE_UP) + ",";
   json += "\"a_down\":" + String(ANGLE_DOWN) + ",";
   json += "\"a_side\":" + String(ANGLE_SIDE) + ",";
+  json += "\"a_s3_init\":" + String(ANGLE_SERVO3_INIT) + ",";
   json += "\"t_dot\":" + String(TIME_DOT) + ",";
   json += "\"t_char\":" + String(TIME_CHAR) + ",";
   json += "\"t_ret\":" + String(TIME_RET) + ",";
   json += "\"s_row\":" + String(STEPS_ROW) + ",";
   json += "\"s_new\":" + String(STEPS_NEWLINE) + ",";
   json += "\"c_line\":" + String(CHARS_PER_LINE) + ",";
-  json += "\"f_dir\":" + String(FEED_DIR);+ ",";
+  json += "\"f_dir\":" + String(FEED_DIR) + ",";
   json += "\"as_dot\":" + String(ANGLE_STEP_DOT) + ",";
   json += "\"as_char\":" + String(ANGLE_STEP_CHAR) + ",";
   json += "\"r_ang\":" + String(RET_STEP_ANGLE) + ",";
   json += "\"r_del\":" + String(RET_STEP_DELAY);
-  json += "}";
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -459,6 +496,21 @@ void handleServo2(){
   }
 }
 
+void handleServo3(){
+  if (server.hasArg("angle")) {
+    String angleVal = server.arg("angle");
+    int angle = angleVal.toInt();
+    
+    if (angle < 0) angle = 0;
+    if (angle > 180) angle = 180;
+
+    myServo3.write(angle); 
+    server.send(200, "text/plain", "OK");
+  } else {
+    server.send(400, "text/plain", "Missing angle");
+  }
+}
+
 void handleStepper() {
   if (!server.hasArg("steps") || !server.hasArg("dir")) {
     server.send(400, "text/plain", "Bad Request");
@@ -506,6 +558,9 @@ void setup() {
   
   myServo2.attach(servo2Pin, 500, 2400); 
   myServo2.write(ANGLE_SIDE);
+
+  myServo3.attach(servo3Pin, 500, 2400);
+  myServo3.write(ANGLE_SERVO3_INIT);
   
   // Пины шаговика
   pinMode(STEP_PIN, OUTPUT);
@@ -513,7 +568,7 @@ void setup() {
 
   // WiFi AP
   Serial.println("Starting AP...");
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(ssid.c_str(), password.c_str());
   Serial.print("IP Address: "); 
   Serial.println(WiFi.softAPIP());
 
@@ -523,6 +578,7 @@ void setup() {
   server.on("/status", handleStatus);
   server.on("/servo", handleServo);
   server.on("/servo2", handleServo2);
+  server.on("/servo3", handleServo3);
   server.on("/stepper", handleStepper);
   server.on("/save_settings", handleSaveSettings);
   server.on("/get_settings", handleGetSettings);

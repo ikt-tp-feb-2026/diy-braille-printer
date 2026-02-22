@@ -681,6 +681,10 @@
             <label>Серво 3: Начальный угол</label>
             <input type="number" id="cfg_a_s3_init">
         </div>
+        <div class="setting-group">
+            <label>Серво 3: Макс. угол</label>
+            <input type="number" id="cfg_a_s3_max">
+        </div>
 
         <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
 
@@ -906,6 +910,7 @@
                 if(data.a_up !== undefined) document.getElementById('cfg_a_up').value = data.a_up;
                 if(data.a_side !== undefined) document.getElementById('cfg_a_side').value = data.a_side;
                 if(data.a_s3_init !== undefined) document.getElementById('cfg_a_s3_init').value = data.a_s3_init;
+                if(data.a_s3_max !== undefined) document.getElementById('cfg_a_s3_max').value = data.a_s3_max;
                 
                 // Тайминги
                 if(data.t_dot !== undefined) document.getElementById('cfg_t_dot').value = data.t_dot;
@@ -949,6 +954,7 @@
             a_up: document.getElementById('cfg_a_up').value,
             a_side: document.getElementById('cfg_a_side').value,
             a_s3_init: document.getElementById('cfg_a_s3_init').value,
+            a_s3_max: document.getElementById('cfg_a_s3_max').value,
             t_dot: document.getElementById('cfg_t_dot').value,
             t_ret: document.getElementById('cfg_t_ret').value,
             t_char: document.getElementById('cfg_t_char').value,

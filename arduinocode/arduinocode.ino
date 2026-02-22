@@ -28,15 +28,16 @@ const int DIR_PIN = 16;
 const int STEP_DELAY = 900; // Задержка между шагами (мкс)
 
 // --- СЕРВО ---
-int ANGLE_UP = 25;
+int ANGLE_UP = 35;
 int ANGLE_DOWN = 0;
 
 // --- СЕРВО2 ---
 int ANGLE_SIDE = 0;
-int ANGLE_MAX_SIDE = 170;
+int ANGLE_MAX_SIDE = 180;
 
 // --- СЕРВО3 ---
-int ANGLE_SERVO3_INIT = 90;
+int ANGLE_SERVO3_INIT = 10;
+int ANGLE_SERVO3_MAX_SIDE = 85;
 
 int ANGLE_STEP_DOT = 3;   // Градусы поворота между 1 и 2 точкой внутри символа
 int ANGLE_STEP_CHAR = 6;  // Градусы поворота между символами
@@ -90,7 +91,8 @@ void loadSettings() {
   ANGLE_UP = preferences.getInt("a_up", 0);
   ANGLE_DOWN = preferences.getInt("a_down", 90);
   ANGLE_SIDE = preferences.getInt("a_side", 0);
-  ANGLE_SERVO3_INIT = preferences.getInt("a_s3_init", 90);
+  ANGLE_SERVO3_INIT = preferences.getInt("a_s3_init", 0);
+  ANGLE_SERVO3_MAX_SIDE = preferences.getInt("a_s3_max", 85);
   TIME_DOT = preferences.getInt("t_dot", 150);
   TIME_CHAR = preferences.getInt("t_char", 200);
   TIME_RET = preferences.getInt("t_ret", 1500);
@@ -146,6 +148,11 @@ void handleSaveSettings() {
     if (server.hasArg("a_s3_init")) {
     ANGLE_SERVO3_INIT = server.arg("a_s3_init").toInt();
     preferences.putInt("a_s3_init", ANGLE_SERVO3_INIT);
+    changed = true;
+  }
+  if (server.hasArg("a_s3_max")) {
+    ANGLE_SERVO3_MAX_SIDE = server.arg("a_s3_max").toInt();
+    preferences.putInt("a_s3_max", ANGLE_SERVO3_MAX_SIDE);
     changed = true;
   }
   if (server.hasArg("t_dot")) {
@@ -223,6 +230,7 @@ void handleGetSettings() {
   json += "\"a_down\":" + String(ANGLE_DOWN) + ",";
   json += "\"a_side\":" + String(ANGLE_SIDE) + ",";
   json += "\"a_s3_init\":" + String(ANGLE_SERVO3_INIT) + ",";
+  json += "\"a_s3_max\":" + String(ANGLE_SERVO3_MAX_SIDE) + ",";
   json += "\"t_dot\":" + String(TIME_DOT) + ",";
   json += "\"t_char\":" + String(TIME_CHAR) + ",";
   json += "\"t_ret\":" + String(TIME_RET) + ",";
@@ -308,8 +316,7 @@ byte getCharBits(String l) {
 void punch() {
   myServo.write(ANGLE_DOWN); 
   delay(120); 
-  myServo.write(ANGLE_UP);   
-  delay(120);
+  myServo.write(ANGLE_UP);
 }
 
 void runStepper(int steps, bool direction) {
@@ -431,6 +438,7 @@ void printPhysicalLine(String lineText) {
     }
     delay(TIME_RET); // Оставляем общую паузу перед следующим шагом мотора (на всякий случай)
 
+    myServo3.write(ANGLE_SERVO3_MAX_SIDE);
     // Протяжка бумаги
     if (row < 2) {
       // Если это 0-й или 1-й проход — делаем МАЛЕНЬКИЙ шаг к следующему ряду точек 
@@ -440,6 +448,7 @@ void printPhysicalLine(String lineText) {
       Serial.println("Line complete. Newline feed.");
       runStepper(STEPS_NEWLINE, (FEED_DIR == 1 ? HIGH : LOW));
     }
+    myServo3.write(ANGLE_SERVO3_INIT);
   }
 }
 
@@ -502,7 +511,7 @@ void handleServo3(){
     int angle = angleVal.toInt();
     
     if (angle < 0) angle = 0;
-    if (angle > 180) angle = 180;
+    if (angle > ANGLE_SERVO3_MAX_SIDE) angle = ANGLE_SERVO3_MAX_SIDE;
 
     myServo3.write(angle); 
     server.send(200, "text/plain", "OK");

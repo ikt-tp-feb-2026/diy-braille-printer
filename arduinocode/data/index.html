@@ -495,22 +495,22 @@
         /* Убраны: uppercase, text-shadow, мелкий шрифт */
     }
 
-    .modal-content input[type="number"], 
+    .modal-content input, 
     .modal-content select {
-        background: rgba(255, 255, 255, 0.5);
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 14px;
-        padding: 14px;
-        font-size: 16px;
+        background: rgba(255, 255, 255, 0.7);
+        border: none;
+        border-radius: 16px;
+        padding: 16px;
+        font-size: 17px;
         width: 100%;
         box-sizing: border-box;
         transition: all 0.2s;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
     }
     
     .modal-content input:focus, .modal-content select:focus {
         background: #fff;
-        box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
+        box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15), 0 4px 12px rgba(0, 122, 255, 0.2);
     }
 
     /* Кнопки действий */
@@ -677,14 +677,6 @@
             <label>Серво 2 (Каретка): Начальный угол</label>
             <input type="number" id="cfg_a_side">
         </div>
-        <div class="setting-group">
-            <label>Серво 3: Начальный угол</label>
-            <input type="number" id="cfg_a_s3_init">
-        </div>
-        <div class="setting-group">
-            <label>Серво 3: Макс. угол</label>
-            <input type="number" id="cfg_a_s3_max">
-        </div>
 
         <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
 
@@ -833,30 +825,6 @@
       xhr.send();
     }
 
-    function sendServo3() {
-      const angleInput = document.getElementById('servo3Angle');
-      let angle = parseInt(angleInput.value);
-
-      if (isNaN(angle)) angle = 0;
-      if (angle < 0) angle = 0;
-      if (angle > 180) angle = 180;
-      angleInput.value = angle; 
-
-      setDebugStatus("⏳ Поворот серво3 на " + angle + "°...", "#e67e22");
-
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", "/servo3?angle=" + angle, true);
-      xhr.onload = function() {
-        if(xhr.status == 200) {
-          setDebugStatus("✅ Серво3: " + angle + "°", "#27ae60");
-        } else {
-          setDebugStatus("❌ Ошибка HTTP: " + xhr.status, "#c0392b");
-        }
-      };
-      xhr.onerror = function() { setDebugStatus("❌ Ошибка соединения", "#c0392b"); };
-      xhr.send();
-    }
-
     // --- ЛОГИКА ШАГОВИКА ---
     let currentStepperDir = 'cw'; // cw = clockwise, ccw = counter-clockwise
 
@@ -953,8 +921,6 @@
             a_down: document.getElementById('cfg_a_down').value,
             a_up: document.getElementById('cfg_a_up').value,
             a_side: document.getElementById('cfg_a_side').value,
-            a_s3_init: document.getElementById('cfg_a_s3_init').value,
-            a_s3_max: document.getElementById('cfg_a_s3_max').value,
             t_dot: document.getElementById('cfg_t_dot').value,
             t_ret: document.getElementById('cfg_t_ret').value,
             t_char: document.getElementById('cfg_t_char').value,

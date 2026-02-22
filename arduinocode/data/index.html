@@ -606,6 +606,15 @@
       </div>
 
       <div class="control-group">
+          <p style="margin-bottom: 15px; font-weight: 600;">Второй сервопривод</p>
+          <div style="margin-bottom: 15px;">
+            <label for="servo2Angle" class="label-small">Угол (0° - 180°):</label>
+            <input type="number" id="servo2Angle" min="0" max="180" value="90" placeholder="90">
+          </div>
+          <button class="btn btn-red" onclick="sendServo2()">ПОВЕРНУТЬ СЕРВО</button>
+      </div>
+
+      <div class="control-group">
         <p style="margin-bottom: 15px; font-weight: 600;">Шаговый двигатель</p>
         
         <label for="stepperSteps" class="label-small">Количество шагов:</label>
@@ -747,6 +756,30 @@
       xhr.send();
     }
 
+    function sendServo2() {
+      const angleInput = document.getElementById('servo2Angle');
+      let angle = parseInt(angleInput.value);
+
+      if (isNaN(angle)) angle = 0;
+      if (angle < 0) angle = 0;
+      if (angle > 180) angle = 180;
+      angleInput.value = angle; 
+
+      setDebugStatus("⏳ Поворот серво2 на " + angle + "°...", "#e67e22");
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/servo2?angle=" + angle, true);
+      xhr.onload = function() {
+        if(xhr.status == 200) {
+          setDebugStatus("✅ Серво2: " + angle + "°", "#27ae60");
+        } else {
+          setDebugStatus("❌ Ошибка HTTP: " + xhr.status, "#c0392b");
+        }
+      };
+      xhr.onerror = function() { setDebugStatus("❌ Ошибка соединения", "#c0392b"); };
+      xhr.send();
+    }
+
     // --- ЛОГИКА ШАГОВИКА ---
     let currentStepperDir = 'cw'; // cw = clockwise, ccw = counter-clockwise
 
@@ -860,7 +893,8 @@
       '1':[1,0,0,0,0,0], '2':[1,1,0,0,0,0], '3':[1,0,0,1,0,0], '4':[1,0,0,1,1,0],
       '5':[1,0,0,0,1,0], '6':[1,1,0,1,0,0], '7':[1,1,0,1,1,0], '8':[1,1,0,0,1,0],
       '9':[0,1,0,1,0,0], '0':[0,1,0,1,1,0],
-      '.':[0,1,0,0,1,1], ',':[0,1,0,0,0,0], '!':[0,1,1,0,1,0], '?':[0,1,0,0,0,1], '-':[0,0,1,0,0,1]
+      '.':[0,1,0,0,1,1], ',':[0,1,0,0,0,0], '!':[0,1,1,0,1,0], '?':[0,1,0,0,0,1], '-':[0,0,1,0,0,1],
+      '#':[0,0,1,1,1,1] // <- Цифровой идентификатор
     };
 
     function renderBraille() {

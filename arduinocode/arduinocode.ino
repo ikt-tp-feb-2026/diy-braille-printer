@@ -26,8 +26,12 @@ const int DIR_PIN = 16;
 const int STEP_DELAY = 900; // Задержка между шагами (мкс)
 
 // --- СЕРВО ---
-int ANGLE_UP = 0;      
-int ANGLE_DOWN = 90;   
+int ANGLE_UP = 25;
+int ANGLE_DOWN = 0;
+
+// --- СЕРВО2 ---
+int ANGLE_SIDE = 0;
+int ANGLE_MAX_SIDE = 170;
 
 // Тайминги (мс) для печати (пока просто задержки)
 int TIME_DOT = 150;   // Между точками
@@ -71,6 +75,7 @@ void loadSettings() {
   // Читаем значения. Если ключа нет, берем второй аргумент (дефолт)
   ANGLE_UP = preferences.getInt("a_up", 0);
   ANGLE_DOWN = preferences.getInt("a_down", 90);
+  ANGLE_SIDE = preferences.getInt("a_side", 0);
   TIME_DOT = preferences.getInt("t_dot", 150);
   TIME_CHAR = preferences.getInt("t_char", 200);
   TIME_RET = preferences.getInt("t_ret", 1500);
@@ -94,6 +99,11 @@ void handleSaveSettings() {
   if (server.hasArg("a_down")) {
     ANGLE_DOWN = server.arg("a_down").toInt();
     preferences.putInt("a_down", ANGLE_DOWN);
+    changed = true;
+  }
+  if (server.hasArg("a_side")) {
+    ANGLE_SIDE = server.arg("a_side").toInt();
+    preferences.putInt("a_side", ANGLE_SIDE);
     changed = true;
   }
   if (server.hasArg("t_dot")) {
@@ -144,6 +154,7 @@ void handleGetSettings() {
   String json = "{";
   json += "\"a_up\":" + String(ANGLE_UP) + ",";
   json += "\"a_down\":" + String(ANGLE_DOWN) + ",";
+  json += "\"a_side\":" + String(ANGLE_SIDE) + ",";
   json += "\"t_dot\":" + String(TIME_DOT) + ",";
   json += "\"t_char\":" + String(TIME_CHAR) + ",";
   json += "\"t_ret\":" + String(TIME_RET) + ",";
@@ -214,7 +225,10 @@ byte getCharBits(String l) {
   if(l=="!") return 0b010110;
   if(l=="?") return 0b100010;
   if(l=="-") return 0b100100;
-  //TODO цифровой индикатор
+  
+  //Цифровой идентификатор
+  if(l=="#") return 0b111100;
+  
   return 0; 
 }
 
@@ -435,7 +449,7 @@ void setup() {
   myServo.write(ANGLE_UP);
   
   myServo2.attach(servo2Pin, 500, 2400); 
-  //myServo2.write(ANGLE_UP);
+  myServo2.write(ANGLE_SIDE);
   
   // Пины шаговика
   pinMode(STEP_PIN, OUTPUT);

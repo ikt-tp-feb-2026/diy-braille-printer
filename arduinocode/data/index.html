@@ -672,6 +672,21 @@
         <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
 
         <div class="setting-group">
+            <label>Длина тяги A (мм)</label>
+            <input type="number" id="cfg_s_a">
+        </div>
+        <div class="setting-group">
+            <label>Длина тяги B (мм)</label>
+            <input type="number" id="cfg_s_b">
+        </div>
+        <div class="setting-group">
+            <label>Макс. позиция каретки (мм)</label>
+            <input type="number" id="cfg_m_c">
+        </div>
+
+        <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
+
+        <div class="setting-group">
            <label>Направление протяжки</label>
            <select id="cfg_feed_dir" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ccc;">
                <option value="1">По часовой (HIGH / CW)</option>
@@ -868,8 +883,11 @@
                 if(data.a_down !== undefined) document.getElementById('cfg_a_down').value = data.a_down;
                 if(data.a_up !== undefined) document.getElementById('cfg_a_up').value = data.a_up;
                 if(data.a_side !== undefined) document.getElementById('cfg_a_side').value = data.a_side;
-                if(data.a_s3_init !== undefined) document.getElementById('cfg_a_s3_init').value = data.a_s3_init;
-                if(data.a_s3_max !== undefined) document.getElementById('cfg_a_s3_max').value = data.a_s3_max;
+                
+                // Механика рычага
+                if(data.s_a !== undefined) document.getElementById('cfg_s_a').value = data.s_a;
+                if(data.s_b !== undefined) document.getElementById('cfg_s_b').value = data.s_b;
+                if(data.m_c !== undefined) document.getElementById('cfg_m_c').value = data.m_c;
                 
                 // Тайминги
                 if(data.t_dot !== undefined) document.getElementById('cfg_t_dot').value = data.t_dot;
@@ -912,6 +930,9 @@
             a_down: document.getElementById('cfg_a_down').value,
             a_up: document.getElementById('cfg_a_up').value,
             a_side: document.getElementById('cfg_a_side').value,
+            s_a: document.getElementById('cfg_s_a').value,
+            s_b: document.getElementById('cfg_s_b').value,
+            m_c: document.getElementById('cfg_m_c').value,
             t_dot: document.getElementById('cfg_t_dot').value,
             t_ret: document.getElementById('cfg_t_ret').value,
             t_char: document.getElementById('cfg_t_char').value,

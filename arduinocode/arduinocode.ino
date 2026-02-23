@@ -3,6 +3,7 @@
 #include <ESP32Servo.h>
 #include <LittleFS.h>
 #include <Preferences.h>
+#include <math.h>
 
 Preferences preferences;
 
@@ -26,15 +27,16 @@ const int DIR_PIN = 16;
 const int STEP_DELAY = 900; // Задержка между шагами (мкс)
 
 // --- СЕРВО ---
-int ANGLE_UP = 35;
+int ANGLE_UP = 30;
 int ANGLE_DOWN = 0;
 
 // --- СЕРВО2 ---
-int ANGLE_SIDE = 40;
+int ANGLE_SIDE = 30;
 int ANGLE_MAX_SIDE = 180;
 
-int ANGLE_STEP_DOT = 3;   // Градусы поворота между 1 и 2 точкой внутри символа
-int ANGLE_STEP_CHAR = 6;  // Градусы поворота между символами
+int STEP_DOT = 3;   // Градусы поворота между 1 и 2 точкой внутри символа
+int STEP_CHAR = 7;  // Градусы поворота между символами
+int MAX_C = 160;
 int RET_STEP_ANGLE = 2;   // На сколько градусов возвращать серво за один "тик"
 int RET_STEP_DELAY = 15;  // Задержка (мс) между "тиками" возврата для плавности
 int currentPosX = ANGLE_SIDE; // Текущая позиция каретки
@@ -48,9 +50,12 @@ int TIME_RET = 1500;  // Возврат каретки
 int FEED_DIR = 1; // Направление, 1 = HIGH, 0 = LOW
 
 // --- НАСТРОЙКИ СТРАНИЦЫ ---
-int CHARS_PER_LINE = 13;   // Максимум символов в строке
+int CHARS_PER_LINE = 15;   // Максимум символов в строке
 int STEPS_ROW = 700;       // Шаг между точечными рядами
 int STEPS_NEWLINE = 900;  // Шаг для перехода на новую строку
+
+int SIDE_A = 170;
+int SIDE_B = 80;
 
 bool isPrinting = false;
 
@@ -82,20 +87,24 @@ void loadSettings() {
   ssid = preferences.getString("ssid", "admin");
   password = preferences.getString("password", "adminadmin");
   
-  ANGLE_UP = preferences.getInt("a_up", 0);
-  ANGLE_DOWN = preferences.getInt("a_down", 90);
-  ANGLE_SIDE = preferences.getInt("a_side", 40);
+  ANGLE_UP = preferences.getInt("a_up", 30);
+  ANGLE_DOWN = preferences.getInt("a_down", 0);
+  ANGLE_SIDE = preferences.getInt("a_side", 30);
   TIME_DOT = preferences.getInt("t_dot", 150);
   TIME_CHAR = preferences.getInt("t_char", 200);
   TIME_RET = preferences.getInt("t_ret", 1500);
   FEED_DIR = preferences.getInt("f_dir", 1);
-  CHARS_PER_LINE = preferences.getInt("c_line", 13);
+  CHARS_PER_LINE = preferences.getInt("c_line", 15);
   STEPS_ROW = preferences.getInt("s_row", 700);
   STEPS_NEWLINE = preferences.getInt("s_new", 900);
-  ANGLE_STEP_DOT = preferences.getInt("as_dot", 3);
-  ANGLE_STEP_CHAR = preferences.getInt("as_char", 6);
+  STEP_DOT = preferences.getInt("as_dot", 3);
+  STEP_CHAR = preferences.getInt("as_char", 6);
   RET_STEP_ANGLE = preferences.getInt("r_ang", 2);
   RET_STEP_DELAY = preferences.getInt("r_del", 15);
+
+  SIDE_A = preferences.getInt("s_a", 170);
+  SIDE_B = preferences.getInt("s_b", 80);
+  MAX_C = preferences.getInt("m_c", 160);
 
   Serial.println("Settings loaded from NVS");
 }
@@ -173,13 +182,13 @@ void handleSaveSettings() {
     changed = true;
   }
   if (server.hasArg("as_dot")) {
-    ANGLE_STEP_DOT = server.arg("as_dot").toInt();
-    preferences.putInt("as_dot", ANGLE_STEP_DOT);
+    STEP_DOT = server.arg("as_dot").toInt();
+    preferences.putInt("as_dot", STEP_DOT);
     changed = true;
   }
   if (server.hasArg("as_char")) {
-    ANGLE_STEP_CHAR = server.arg("as_char").toInt();
-    preferences.putInt("as_char", ANGLE_STEP_CHAR);
+    STEP_CHAR = server.arg("as_char").toInt();
+    preferences.putInt("as_char", STEP_CHAR);
     changed = true;
   }
   if (server.hasArg("r_ang")) {
@@ -190,6 +199,22 @@ void handleSaveSettings() {
   if (server.hasArg("r_del")) {
     RET_STEP_DELAY = server.arg("r_del").toInt();
     preferences.putInt("r_del", RET_STEP_DELAY);
+    changed = true;
+  }
+
+  if (server.hasArg("s_a")) {
+    SIDE_A = server.arg("s_a").toInt();
+    preferences.putInt("s_a", SIDE_A);
+    changed = true;
+  }
+  if (server.hasArg("s_b")) {
+    SIDE_B = server.arg("s_b").toInt();
+    preferences.putInt("s_b", SIDE_B);
+    changed = true;
+  }
+  if (server.hasArg("m_c")) {
+    MAX_C = server.arg("m_c").toInt();
+    preferences.putInt("m_c", MAX_C);
     changed = true;
   }
 
@@ -218,10 +243,13 @@ void handleGetSettings() {
   json += "\"s_new\":" + String(STEPS_NEWLINE) + ",";
   json += "\"c_line\":" + String(CHARS_PER_LINE) + ",";
   json += "\"f_dir\":" + String(FEED_DIR) + ",";
-  json += "\"as_dot\":" + String(ANGLE_STEP_DOT) + ",";
-  json += "\"as_char\":" + String(ANGLE_STEP_CHAR) + ",";
+  json += "\"as_dot\":" + String(STEP_DOT) + ",";
+  json += "\"as_char\":" + String(STEP_CHAR) + ",";
   json += "\"r_ang\":" + String(RET_STEP_ANGLE) + ",";
-  json += "\"r_del\":" + String(RET_STEP_DELAY);
+  json += "\"r_del\":" + String(RET_STEP_DELAY) + ",";
+  json += "\"s_a\":" + String(SIDE_A) + ",";
+  json += "\"s_b\":" + String(SIDE_B) + ",";
+  json += "\"m_c\":" + String(MAX_C);
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -365,8 +393,8 @@ void printPhysicalLine(String lineText) {
     // Проход печати точек
     Serial.print("--- Start Row Pass: "); Serial.println(row);
 
-    currentPosX = ANGLE_SIDE;
-    myServo2.write(currentPosX);
+    currentPosX = 95;
+    myServo2.write(ANGLE_SIDE);
     delay(200);
     
     for (int i = 0; i < lineText.length(); i++) {
@@ -379,7 +407,7 @@ void printPhysicalLine(String lineText) {
       } else {
         ch += (char)lineText[i];
         if (i+1 < lineText.length()) ch += (char)lineText[i+1];
-        i++; 
+        i++;
       }
       
       if (ch == "\n" || ch == "\r") continue; // Игнорируем спецсимволы при печати точек
@@ -394,28 +422,28 @@ void printPhysicalLine(String lineText) {
       if(d1) punch(); else delay(240); 
       
       // Сдвигаемся ко второй точке символа
-      currentPosX += ANGLE_STEP_DOT;
-      if(currentPosX > ANGLE_MAX_SIDE) currentPosX = ANGLE_MAX_SIDE; // Защита от перекрута
-      myServo2.write(currentPosX);
+      currentPosX += STEP_DOT;
+      if(currentPosX > MAX_C) currentPosX = MAX_C; // Защита от перекрута
+      float cos_a = (- pow(SIDE_A, 2) + pow(SIDE_B, 2) + pow(currentPosX, 2)) / (2.0 * currentPosX * SIDE_B);
+      int a = 180 - degrees(acos(cos_a)) + ANGLE_SIDE;
+      myServo2.write(a);
       delay(TIME_DOT); 
       
       if(d2) punch(); else delay(240); 
       
       // Сдвигаемся к следующему символу
-      currentPosX += ANGLE_STEP_CHAR;
-      if(currentPosX > ANGLE_MAX_SIDE) currentPosX = ANGLE_MAX_SIDE; // Защита от перекрута
-      myServo2.write(currentPosX);
+      currentPosX += STEP_CHAR;
+      if(currentPosX > MAX_C) currentPosX = MAX_C; // Защита от перекрута
+      cos_a = (- pow(SIDE_A, 2) + pow(SIDE_B, 2) + pow(currentPosX, 2)) / (2.0 * currentPosX * SIDE_B);
+      a = 180 - degrees(acos(cos_a)) + ANGLE_SIDE;
+      myServo2.write(a);
       delay(TIME_CHAR);
     }
     
+    myServo2.write(ANGLE_SIDE);
+    delay(TIME_CHAR);
     // Конец прохода (строка точек набита)
     Serial.println("Row pass complete. Returning carriage...");
-    while (currentPosX > ANGLE_SIDE) {
-      currentPosX -= RET_STEP_ANGLE;
-      if (currentPosX < ANGLE_SIDE) currentPosX = ANGLE_SIDE; // Чтобы не уйти в минус
-      myServo2.write(currentPosX);
-      delay(RET_STEP_DELAY);
-    }
     delay(TIME_RET); // Оставляем общую паузу перед следующим шагом мотора (на всякий случай)
 
     // Протяжка бумаги

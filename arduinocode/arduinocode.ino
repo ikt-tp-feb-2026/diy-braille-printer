@@ -36,10 +36,11 @@ int ANGLE_MAX_SIDE = 180;
 
 int STEP_DOT = 3;   // Градусы поворота между 1 и 2 точкой внутри символа
 int STEP_CHAR = 7;  // Градусы поворота между символами
-int MAX_C = 160;
+int MAX_C = 320;
 int RET_STEP_ANGLE = 2;   // На сколько градусов возвращать серво за один "тик"
 int RET_STEP_DELAY = 15;  // Задержка (мс) между "тиками" возврата для плавности
-int currentPosX = ANGLE_SIDE; // Текущая позиция каретки
+int DEFAULT_POS_X = 95;
+int currentPosX = DEFAULT_POS_X; // Текущая позиция каретки
 
 // Тайминги (мс) для печати (пока просто задержки)
 int TIME_DOT = 150;   // Между точками
@@ -105,6 +106,7 @@ void loadSettings() {
   SIDE_A = preferences.getInt("s_a", 170);
   SIDE_B = preferences.getInt("s_b", 80);
   MAX_C = preferences.getInt("m_c", 160);
+  DEFAULT_POS_X = preferences.getInt("d_pos_x", 95);
 
   Serial.println("Settings loaded from NVS");
 }
@@ -217,6 +219,11 @@ void handleSaveSettings() {
     preferences.putInt("m_c", MAX_C);
     changed = true;
   }
+  if (server.hasArg("d_pos_x")) {
+    DEFAULT_POS_X = server.arg("d_pos_x").toInt();
+    preferences.putInt("d_pos_x", DEFAULT_POS_X);
+    changed = true;
+  }
 
   if (wifiChanged) {
     server.send(200, "text/plain", "WiFi settings saved! Please reboot the device.");
@@ -249,7 +256,8 @@ void handleGetSettings() {
   json += "\"r_del\":" + String(RET_STEP_DELAY) + ",";
   json += "\"s_a\":" + String(SIDE_A) + ",";
   json += "\"s_b\":" + String(SIDE_B) + ",";
-  json += "\"m_c\":" + String(MAX_C);
+  json += "\"m_c\":" + String(MAX_C) + ",";
+  json += "\"d_pos_x\":" + String(DEFAULT_POS_X);
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -393,7 +401,7 @@ void printPhysicalLine(String lineText) {
     // Проход печати точек
     Serial.print("--- Start Row Pass: "); Serial.println(row);
 
-    currentPosX = 95;
+    currentPosX = DEFAULT_POS_X;
     myServo2.write(ANGLE_SIDE);
     delay(200);
     

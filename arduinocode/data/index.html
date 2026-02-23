@@ -683,6 +683,10 @@
             <label>Макс. позиция каретки (мм)</label>
             <input type="number" id="cfg_m_c">
         </div>
+        <div class="setting-group">
+            <label>Начальная позиция каретки X (мм)</label>
+            <input type="number" id="cfg_d_pos_x">
+        </div>
 
         <hr style="border:0; border-top:1px dashed #ddd; margin: 25px 0;">
 
@@ -888,6 +892,7 @@
                 if(data.s_a !== undefined) document.getElementById('cfg_s_a').value = data.s_a;
                 if(data.s_b !== undefined) document.getElementById('cfg_s_b').value = data.s_b;
                 if(data.m_c !== undefined) document.getElementById('cfg_m_c').value = data.m_c;
+                if(data.d_pos_x !== undefined) document.getElementById('cfg_d_pos_x').value = data.d_pos_x;
                 
                 // Тайминги
                 if(data.t_dot !== undefined) document.getElementById('cfg_t_dot').value = data.t_dot;
@@ -933,6 +938,7 @@
             s_a: document.getElementById('cfg_s_a').value,
             s_b: document.getElementById('cfg_s_b').value,
             m_c: document.getElementById('cfg_m_c').value,
+            d_pos_x: document.getElementById('cfg_d_pos_x').value,
             t_dot: document.getElementById('cfg_t_dot').value,
             t_ret: document.getElementById('cfg_t_ret').value,
             t_char: document.getElementById('cfg_t_char').value,

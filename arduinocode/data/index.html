@@ -743,6 +743,10 @@
            <label>Задержка возврата каретки (мс)</label>
            <input type="number" id="cfg_t_ret">
        </div>
+        <div class="setting-group">
+            <label>Задержка удара (мс)</label>
+            <input type="number" id="cfg_p_del">
+        </div>
 
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeSettings()">Отмена</button>
@@ -912,6 +916,9 @@
                 if(data.as_char !== undefined) document.getElementById('cfg_as_char').value = data.as_char;
                 if(data.r_ang !== undefined) document.getElementById('cfg_r_ang').value = data.r_ang;
                 if(data.r_del !== undefined) document.getElementById('cfg_r_del').value = data.r_del;
+                
+                // PUNCH_DELAY
+                if(data.p_del !== undefined) document.getElementById('cfg_p_del').value = data.p_del;
             })
             .catch(err => console.log("Ошибка загрузки настроек: " + err));
     }
@@ -949,7 +956,8 @@
             as_dot: document.getElementById('cfg_as_dot').value,
             as_char: document.getElementById('cfg_as_char').value,
             r_ang: document.getElementById('cfg_r_ang').value,
-            r_del: document.getElementById('cfg_r_del').value
+            r_del: document.getElementById('cfg_r_del').value,
+            p_del: document.getElementById('cfg_p_del').value
         });
 
         fetch('/save_settings?' + params.toString())

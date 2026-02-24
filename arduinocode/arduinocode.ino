@@ -58,6 +58,8 @@ int STEPS_NEWLINE = 900;  // Шаг для перехода на новую ст
 int SIDE_A = 170;
 int SIDE_B = 80;
 
+int PUNCH_DELAY = 200;
+
 bool isPrinting = false;
 
 WebServer server(80);
@@ -107,6 +109,7 @@ void loadSettings() {
   SIDE_B = preferences.getInt("s_b", 80);
   MAX_C = preferences.getInt("m_c", 160);
   DEFAULT_POS_X = preferences.getInt("d_pos_x", 95);
+  PUNCH_DELAY = preferences.getInt("p_del", 200);
 
   Serial.println("Settings loaded from NVS");
 }
@@ -224,6 +227,11 @@ void handleSaveSettings() {
     preferences.putInt("d_pos_x", DEFAULT_POS_X);
     changed = true;
   }
+  if (server.hasArg("p_del")) {
+    PUNCH_DELAY = server.arg("p_del").toInt();
+    preferences.putInt("p_del", PUNCH_DELAY);
+    changed = true;
+  }
 
   if (wifiChanged) {
     server.send(200, "text/plain", "WiFi settings saved! Please reboot the device.");
@@ -257,7 +265,8 @@ void handleGetSettings() {
   json += "\"s_a\":" + String(SIDE_A) + ",";
   json += "\"s_b\":" + String(SIDE_B) + ",";
   json += "\"m_c\":" + String(MAX_C) + ",";
-  json += "\"d_pos_x\":" + String(DEFAULT_POS_X);
+  json += "\"d_pos_x\":" + String(DEFAULT_POS_X) + ",";
+  json += "\"p_del\":" + String(PUNCH_DELAY);
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -331,8 +340,9 @@ byte getCharBits(String l) {
 // Функция удара
 void punch() {
   myServo.write(ANGLE_DOWN); 
-  delay(120); 
+  delay(PUNCH_DELAY); 
   myServo.write(ANGLE_UP);
+  delay(120);
 }
 
 void runStepper(int steps, bool direction) {
@@ -402,8 +412,13 @@ void printPhysicalLine(String lineText) {
     Serial.print("--- Start Row Pass: "); Serial.println(row);
 
     currentPosX = DEFAULT_POS_X;
-    myServo2.write(ANGLE_SIDE);
-    delay(200);
+    if(currentPosX > MAX_C) currentPosX = MAX_C; // Защита от перекрута
+    double cos_a = (- pow(SIDE_A, 2) + pow(SIDE_B, 2) + pow(currentPosX, 2)) / (2.0 * currentPosX * SIDE_B);
+    if (cos_a < -1.0) cos_a = -1.0;
+    if (cos_a > 1.0) cos_a = 1.0;
+    double a = 180 - degrees(acos(cos_a));
+    myServo2.write(a);
+    delay(TIME_CHAR);
     
     for (int i = 0; i < lineText.length(); i++) {
       server.handleClient(); // Чтобы WiFi не отвалился
@@ -430,26 +445,48 @@ void printPhysicalLine(String lineText) {
       if(d1) punch(); else delay(240); 
       
       // Сдвигаемся ко второй точке символа
+      myServo2.write(ANGLE_SIDE);
+      delay(TIME_RET);
       currentPosX += STEP_DOT;
       if(currentPosX > MAX_C) currentPosX = MAX_C; // Защита от перекрута
-      float cos_a = (- pow(SIDE_A, 2) + pow(SIDE_B, 2) + pow(currentPosX, 2)) / (2.0 * currentPosX * SIDE_B);
-      int a = 180 - degrees(acos(cos_a)) + ANGLE_SIDE;
+      cos_a = (- pow(SIDE_A, 2) + pow(SIDE_B, 2) + pow(currentPosX, 2)) / (2.0 * currentPosX * SIDE_B);
+      if (cos_a < -1.0) cos_a = -1.0;
+      if (cos_a > 1.0) cos_a = 1.0;
+      a = 180 - degrees(acos(cos_a));
+      Serial.print(currentPosX);
+      Serial.print("|");
+      Serial.print(a);
+      Serial.print("|");
+      Serial.print(cos_a);
+      Serial.println("|");
+      //myServo2.write(0);
+      //delay(TIME_DOT); 
       myServo2.write(a);
       delay(TIME_DOT); 
       
       if(d2) punch(); else delay(240); 
       
       // Сдвигаемся к следующему символу
+      myServo2.write(ANGLE_SIDE);
+      delay(TIME_RET);
       currentPosX += STEP_CHAR;
       if(currentPosX > MAX_C) currentPosX = MAX_C; // Защита от перекрута
       cos_a = (- pow(SIDE_A, 2) + pow(SIDE_B, 2) + pow(currentPosX, 2)) / (2.0 * currentPosX * SIDE_B);
-      a = 180 - degrees(acos(cos_a)) + ANGLE_SIDE;
+      if (cos_a < -1.0) cos_a = -1.0;
+      if (cos_a > 1.0) cos_a = 1.0;
+      a = 180 - degrees(acos(cos_a));
+      Serial.print(currentPosX);
+      Serial.print("|");
+      Serial.print(a);
+      Serial.print("|");
+      Serial.println(cos_a);
+      //myServo2.write(0);
+      //delay(TIME_CHAR); 
       myServo2.write(a);
       delay(TIME_CHAR);
     }
     
     myServo2.write(ANGLE_SIDE);
-    delay(TIME_CHAR);
     // Конец прохода (строка точек набита)
     Serial.println("Row pass complete. Returning carriage...");
     delay(TIME_RET); // Оставляем общую паузу перед следующим шагом мотора (на всякий случай)

@@ -59,6 +59,7 @@ int SIDE_A = 170;
 int SIDE_B = 80;
 
 int PUNCH_DELAY = 200;
+int PUNCH_STEPS = 1;
 
 bool isPrinting = false;
 
@@ -110,6 +111,7 @@ void loadSettings() {
   MAX_C = preferences.getInt("m_c", 160);
   DEFAULT_POS_X = preferences.getInt("d_pos_x", 95);
   PUNCH_DELAY = preferences.getInt("p_del", 200);
+  PUNCH_STEPS = preferences.getInt("p_steps", 1);
 
   Serial.println("Settings loaded from NVS");
 }
@@ -232,6 +234,11 @@ void handleSaveSettings() {
     preferences.putInt("p_del", PUNCH_DELAY);
     changed = true;
   }
+  if (server.hasArg("p_steps")) {
+    PUNCH_STEPS = server.arg("p_steps").toInt();
+    preferences.putInt("p_steps", PUNCH_STEPS);
+    changed = true;
+  }
 
   if (wifiChanged) {
     server.send(200, "text/plain", "WiFi settings saved! Please reboot the device.");
@@ -266,7 +273,8 @@ void handleGetSettings() {
   json += "\"s_b\":" + String(SIDE_B) + ",";
   json += "\"m_c\":" + String(MAX_C) + ",";
   json += "\"d_pos_x\":" + String(DEFAULT_POS_X) + ",";
-  json += "\"p_del\":" + String(PUNCH_DELAY);
+  json += "\"p_del\":" + String(PUNCH_DELAY) + ",";
+  json += "\"p_steps\":" + String(PUNCH_STEPS);
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -339,10 +347,12 @@ byte getCharBits(String l) {
 
 // Функция удара
 void punch() {
-  myServo.write(ANGLE_DOWN); 
-  delay(PUNCH_DELAY); 
-  myServo.write(ANGLE_UP);
-  delay(120);
+  for (int i = 0; i < PUNCH_STEPS; i++) {
+    myServo.write(ANGLE_DOWN); 
+    delay(PUNCH_DELAY); 
+    myServo.write(ANGLE_UP);
+    delay(120);
+  }
 }
 
 void runStepper(int steps, bool direction) {

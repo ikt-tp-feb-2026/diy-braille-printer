@@ -747,6 +747,10 @@
             <label>Задержка удара (мс)</label>
             <input type="number" id="cfg_p_del">
         </div>
+        <div class="setting-group">
+            <label>Количество ударов</label>
+            <input type="number" id="cfg_p_steps">
+        </div>
 
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeSettings()">Отмена</button>
@@ -919,6 +923,7 @@
                 
                 // PUNCH_DELAY
                 if(data.p_del !== undefined) document.getElementById('cfg_p_del').value = data.p_del;
+                if(data.p_steps !== undefined) document.getElementById('cfg_p_steps').value = data.p_steps;
             })
             .catch(err => console.log("Ошибка загрузки настроек: " + err));
     }
@@ -957,7 +962,8 @@
             as_char: document.getElementById('cfg_as_char').value,
             r_ang: document.getElementById('cfg_r_ang').value,
             r_del: document.getElementById('cfg_r_del').value,
-            p_del: document.getElementById('cfg_p_del').value
+            p_del: document.getElementById('cfg_p_del').value,
+            p_steps: document.getElementById('cfg_p_steps').value
         });
 
         fetch('/save_settings?' + params.toString())
